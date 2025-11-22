@@ -2,9 +2,9 @@
 
 namespace SportOase;
 
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
-class SportOaseBundle extends Bundle
+class SportOaseBundle extends AbstractBundle
 {
     public function getPath(): string
     {
