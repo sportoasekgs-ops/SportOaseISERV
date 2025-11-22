@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/calendar_service.php';
 requireLogin();
 
 if (!isAdmin()) {
@@ -8,6 +9,7 @@ if (!isAdmin()) {
 
 $user = getCurrentUser();
 $db = getDb();
+$calendar = getCalendarService();
 
 // Handle actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -76,12 +78,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 try {
+                    // Get existing booking for calendar event ID
+                    $stmt = $db->prepare("SELECT calendar_event_id, booking_date, period, teacher_name FROM sportoase_bookings WHERE id = ?");
+                    $stmt->execute([$id]);
+                    $existingBooking = $stmt->fetch();
+                    
+                    // Update booking in database
                     $stmt = $db->prepare("UPDATE sportoase_bookings SET offer_details = ?, students_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
                     $stmt->execute([
                         $offer,
                         json_encode($students),
                         $id
                     ]);
+                    
+                    // Update calendar event if it exists
+                    if ($existingBooking && $existingBooking['calendar_event_id']) {
+                        $updatedBookingData = [
+                            'booking_date' => $existingBooking['booking_date'],
+                            'period' => $existingBooking['period'],
+                            'teacher_name' => $existingBooking['teacher_name'],
+                            'students_json' => json_encode($students),
+                            'offer_details' => $offer
+                        ];
+                        $calendar->updateEvent($existingBooking['calendar_event_id'], $updatedBookingData);
+                    }
+                    
                     header('Location: admin.php?success=booking_updated');
                     exit;
                 } catch (PDOException $e) {
@@ -95,8 +116,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete_booking') {
         $id = (int)($_POST['id'] ?? 0);
         if ($id) {
+            // Get calendar event ID before deleting
+            $stmt = $db->prepare("SELECT calendar_event_id FROM sportoase_bookings WHERE id = ?");
+            $stmt->execute([$id]);
+            $booking = $stmt->fetch();
+            
+            // Try to delete calendar event BEFORE deleting from database
+            if ($booking && $booking['calendar_event_id']) {
+                $success = $calendar->deleteEvent($booking['calendar_event_id']);
+                if (!$success) {
+                    // Log error but continue - calendar is supplementary
+                    error_log('Warning: Failed to delete calendar event ' . $booking['calendar_event_id']);
+                }
+            }
+            
+            // Delete from database
             $stmt = $db->prepare("DELETE FROM sportoase_bookings WHERE id = ?");
             $stmt->execute([$id]);
+            
             header('Location: admin.php?success=booking_deleted');
             exit;
         }
@@ -205,9 +242,21 @@ $totalBookings = $db->query("SELECT COUNT(*) FROM sportoase_bookings")->fetchCol
 $totalUsers = $db->query("SELECT COUNT(*) FROM sportoase_users WHERE role = 'teacher'")->fetchColumn();
 $blockedSlots = $db->query("SELECT COUNT(*) FROM sportoase_blocked_slots")->fetchColumn();
 
-// Get current week bookings
-$weekStart = (new DateTime('monday this week'))->format('Y-m-d');
-$weekEnd = (new DateTime('sunday this week'))->format('Y-m-d');
+// Get current week bookings (Mo-Fr only, skip weekends)
+$now = new DateTime();
+$dayOfWeek = (int)$now->format('N'); // 1 = Monday, 7 = Sunday
+
+// If it's Friday (5) from 00:00, Saturday (6), or Sunday (7), jump to next week
+if ($dayOfWeek >= 5) {
+    $monday = new DateTime();
+    $monday->modify('next monday');
+} else {
+    $monday = new DateTime();
+    $monday->modify('monday this week');
+}
+
+$weekStart = $monday->format('Y-m-d');
+$weekEnd = (clone $monday)->modify('+4 days')->format('Y-m-d'); // Only until Friday
 $weekBookings = $db->prepare("SELECT COUNT(*) FROM sportoase_bookings WHERE booking_date BETWEEN ? AND ?");
 $weekBookings->execute([$weekStart, $weekEnd]);
 $currentWeekBookings = $weekBookings->fetchColumn();

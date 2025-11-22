@@ -1,10 +1,12 @@
 <?php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/calendar_service.php';
 requireLogin();
 
 $user = getCurrentUser();
 $isAdminUser = isAdmin();
 $db = getDb();
+$calendar = getCalendarService();
 
 // Handle actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -58,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         // All validations passed, create booking
                         try {
+                            // 1. Create booking in database FIRST (without calendar_event_id)
                             $stmt = $db->prepare("
                                 INSERT INTO sportoase_bookings (user_id, booking_date, period, teacher_name, students_json, offer_details)
                                 VALUES (?, ?, ?, ?, ?, ?)
@@ -71,9 +74,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $offer
                             ]);
                             
+                            $bookingId = $db->lastInsertId();
+                            
+                            // 2. Try to create calendar event AFTER successful DB insert
+                            if ($calendar->isEnabled()) {
+                                $bookingData = [
+                                    'booking_date' => $date,
+                                    'period' => $period,
+                                    'teacher_name' => $user['username'],
+                                    'students_json' => json_encode($students),
+                                    'offer_details' => $offer
+                                ];
+                                
+                                $calendarEventId = $calendar->createEvent($bookingData);
+                                
+                                // 3. Update booking with calendar_event_id
+                                if ($calendarEventId) {
+                                    $stmt = $db->prepare("UPDATE sportoase_bookings SET calendar_event_id = ? WHERE id = ?");
+                                    $stmt->execute([$calendarEventId, $bookingId]);
+                                }
+                            }
+                            
                             header('Location: dashboard.php?success=booking_created');
                             exit;
                         } catch (PDOException $e) {
+                            // If DB insert failed and we created a calendar event, clean it up
+                            if (isset($calendarEventId) && $calendarEventId) {
+                                $calendar->deleteEvent($calendarEventId);
+                            }
                             $error = 'Fehler beim Erstellen der Buchung: ' . $e->getMessage();
                         }
                     }
@@ -120,6 +148,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if (!isset($error)) {
                     try {
+                        // Get existing booking for calendar event ID
+                        $stmt = $db->prepare("SELECT calendar_event_id, booking_date, period, teacher_name FROM sportoase_bookings WHERE id = ?");
+                        $stmt->execute([$id]);
+                        $existingBooking = $stmt->fetch();
+                        
+                        // Update booking in database
                         if ($isAdminUser) {
                             $stmt = $db->prepare("UPDATE sportoase_bookings SET offer_details = ?, students_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
                             $stmt->execute([
@@ -136,6 +170,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $user['id']
                             ]);
                         }
+                        
+                        // Update calendar event if it exists
+                        if ($existingBooking && $existingBooking['calendar_event_id']) {
+                            $updatedBookingData = [
+                                'booking_date' => $existingBooking['booking_date'],
+                                'period' => $existingBooking['period'],
+                                'teacher_name' => $existingBooking['teacher_name'],
+                                'students_json' => json_encode($students),
+                                'offer_details' => $offer
+                            ];
+                            $calendar->updateEvent($existingBooking['calendar_event_id'], $updatedBookingData);
+                        }
+                        
                         header('Location: dashboard.php?success=booking_updated');
                         exit;
                     } catch (PDOException $e) {
@@ -149,6 +196,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Delete booking
     if ($action === 'delete_booking') {
         $id = (int)($_POST['id'] ?? 0);
+        
+        // Get calendar event ID before deleting
+        $stmt = $db->prepare("SELECT calendar_event_id FROM sportoase_bookings WHERE id = ?");
+        $stmt->execute([$id]);
+        $booking = $stmt->fetch();
+        
+        // Try to delete calendar event BEFORE deleting from database
+        $calendarDeleteFailed = false;
+        if ($booking && $booking['calendar_event_id']) {
+            $success = $calendar->deleteEvent($booking['calendar_event_id']);
+            if (!$success) {
+                // Log error but continue - calendar is supplementary
+                error_log('Warning: Failed to delete calendar event ' . $booking['calendar_event_id']);
+                $calendarDeleteFailed = true;
+            }
+        }
+        
+        // Delete from database
         if ($isAdminUser) {
             $stmt = $db->prepare("DELETE FROM sportoase_bookings WHERE id = ?");
             $stmt->execute([$id]);
@@ -156,6 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $db->prepare("DELETE FROM sportoase_bookings WHERE id = ? AND user_id = ?");
             $stmt->execute([$id, $user['id']]);
         }
+        
         header('Location: dashboard.php?success=booking_deleted');
         exit;
     }
@@ -170,15 +236,26 @@ if (isset($_GET['logout'])) {
 
 // Get current week
 $weekOffset = (int)($_GET['week'] ?? 0);
-$monday = new DateTime();
-$monday->modify('monday this week');
+$now = new DateTime();
+$dayOfWeek = (int)$now->format('N'); // 1 = Monday, 7 = Sunday
+
+// If it's Friday (5) from 00:00, Saturday (6), or Sunday (7), jump to next week
+if ($dayOfWeek >= 5) {
+    $monday = new DateTime();
+    $monday->modify('next monday');
+} else {
+    $monday = new DateTime();
+    $monday->modify('monday this week');
+}
+
+// Apply week offset
 if ($weekOffset !== 0) {
     $monday->modify($weekOffset > 0 ? "+{$weekOffset} week" : "{$weekOffset} week");
 }
 
-// Get all bookings for the week
+// Get all bookings for the week (only Mo-Fr, not the full 7 days)
 $weekStart = $monday->format('Y-m-d');
-$weekEnd = (clone $monday)->modify('+6 days')->format('Y-m-d');
+$weekEnd = (clone $monday)->modify('+4 days')->format('Y-m-d'); // Only until Friday
 
 $bookingsStmt = $db->prepare("
     SELECT b.*, u.username as teacher_username

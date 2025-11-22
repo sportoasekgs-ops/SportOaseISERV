@@ -13,7 +13,8 @@ SportOase is a **PHP/Symfony-based IServ module** for booking school sports faci
 - Implemented Phase 2 enhanced features (slot management, user management, audit trail, search/filter, statistics)
 - Implemented Phase 3 features (Google Calendar service, CSV/PDF export, PWA support)
 - **NEW: Implemented moveable fixed course offerings** - Admins can position fixed courses anywhere in the weekly schedule and enforce that teachers can only book the specific module assigned to each slot
-- Created comprehensive implementation documentation (PHASE2_PHASE3_IMPLEMENTATION.md)
+- **NEW: Production-ready Google Calendar Integration** - Full calendar sync with create/update/delete operations, graceful degradation, and data integrity guarantees
+- Created comprehensive implementation documentation (PHASE2_PHASE3_IMPLEMENTATION.md, GOOGLE_CALENDAR_SETUP.md)
 
 ## User Preferences
 
@@ -67,7 +68,7 @@ sportoase/
 Using Doctrine ORM with PostgreSQL:
 
 - **sportoase_users** - User accounts linked to IServ accounts (username, email, role, active status)
-- **sportoase_bookings** - Booking records (date, period, teacher, students as JSON, offer details)
+- **sportoase_bookings** - Booking records (date, period, teacher, students as JSON, offer details, calendar_event_id for Google Calendar sync)
 - **sportoase_slot_names** - Custom labels for fixed time slots
 - **sportoase_blocked_slots** - Admin-managed blocked time slots with reasons
 - **sportoase_notifications** - Notification history for admins
@@ -125,17 +126,26 @@ All routes defined in `config/routes.yaml` and registered via `manifest.xml`.
 - **Statistics Dashboard** - Visual charts showing bookings by day/period, top teachers, weekly trends
 
 #### Phase 3: Polish & Integration
-- **Google Calendar Integration** - Service for syncing bookings to Google Calendar (requires setup)
+- **Google Calendar Integration** - **PRODUCTION-READY** automatic sync of bookings to Google Calendar with create/update/delete operations, graceful degradation when credentials are missing, and data integrity guarantees to prevent orphaned events
 - **CSV/PDF Export** - Export booking data with search filters (requires PDF library)
 - **Progressive Web App** - Manifest and service worker for offline support and installation
 - **Modern UI** - Tailwind CSS responsive design throughout admin interfaces
+
+#### Google Calendar Integration Details
+- **Automatic Sync**: Bookings are automatically synced to Google Calendar
+- **Create**: Calendar events created after successful database insert
+- **Update**: Calendar events updated when bookings are edited (handles both JSON and array formats for students)
+- **Delete**: Calendar events deleted before database deletion with error logging
+- **Data Integrity**: Orphaned events prevented by creating DB record first, cleanup on failure
+- **Graceful Degradation**: App works perfectly without credentials - calendar features simply disabled
+- **Error Handling**: Calendar failures logged but don't block booking operations
+- **Setup**: Requires Google Cloud Service Account with Calendar API access (see GOOGLE_CALENDAR_SETUP.md)
 
 ### Known Issues & Future Improvements
 
 #### Integration Required for Production
 - **Audit Service Integration**: AuditService created but needs integration into BookingController and AdminController mutation methods
 - **Export Dependencies**: Install PDF library (`composer require dompdf/dompdf`) and fix getStudentsJson() handling
-- **Google Calendar Setup**: Install Google API client (`composer require google/apiclient`) and configure OAuth credentials
 - **PWA Assets**: Create app icons (192x192, 512x512) and register service worker in templates
 
 #### UI/UX Improvements
@@ -148,6 +158,7 @@ All routes defined in `config/routes.yaml` and registered via `manifest.xml`.
 - **Audit Log Viewer**: Admin interface to browse and search audit logs
 - **Booking Templates**: Save and reuse common booking configurations
 - **Calendar View**: Visual month/week calendar interface
+- **Legacy Calendar Backfill**: Migration script to create calendar events for bookings that existed before calendar integration was enabled
 
 ### Configuration
 
@@ -158,6 +169,7 @@ Module settings managed via IServ admin panel or environment variables:
 - `ENABLE_NOTIFICATIONS` - Email notification toggle
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` - Email configuration
 - `ADMIN_EMAIL` - Notification recipient (sportoase.kg@gmail.com)
+- `GOOGLE_CALENDAR_ID` - Google Calendar ID for booking sync (optional, see GOOGLE_CALENDAR_SETUP.md)
 
 ### Time Periods
 
