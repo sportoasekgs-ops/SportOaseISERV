@@ -20,6 +20,12 @@ module.exports = {
           800: '#1e40af',
           900: '#1e3a8a',
         },
+        success: '#10b981',
+        warning: '#f59e0b',
+        danger: '#ef4444',
+      },
+      fontFamily: {
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
       },
     },
   },

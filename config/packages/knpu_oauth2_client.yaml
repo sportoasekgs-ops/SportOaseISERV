@@ -1,0 +1,14 @@
+knpu_oauth2_client:
+    clients:
+        iserv:
+            type: generic
+            provider_class: League\OAuth2\Client\Provider\GenericProvider
+            client_id: '%env(ISERV_CLIENT_ID)%'
+            client_secret: '%env(ISERV_CLIENT_SECRET)%'
+            redirect_route: oidc_callback
+            redirect_params: {}
+            provider_options:
+                urlAuthorize: '%env(ISERV_BASE_URL)%/iserv/oauth/v2/authorize'
+                urlAccessToken: '%env(ISERV_BASE_URL)%/iserv/oauth/v2/token'
+                urlResourceOwnerDetails: '%env(ISERV_BASE_URL)%/iserv/oauth/v2/userinfo'
+                scopes: 'openid profile email'

@@ -40,9 +40,29 @@ class AdminController extends AbstractController
             ->getRepository(Booking::class)
             ->findBy([], ['date' => 'DESC', 'period' => 'ASC']);
         
+        // Calculate bookings for current week
+        $currentWeek = new \DateTime('this week');
+        $nextWeek = new \DateTime('next week');
+        $bookingsThisWeek = count($this->entityManager
+            ->getRepository(Booking::class)
+            ->createQueryBuilder('b')
+            ->where('b.date >= :start')
+            ->andWhere('b.date < :end')
+            ->setParameter('start', $currentWeek)
+            ->setParameter('end', $nextWeek)
+            ->getQuery()
+            ->getResult());
+        
+        // Count blocked slots
+        $blockedSlots = count($this->entityManager
+            ->getRepository(BlockedSlot::class)
+            ->findAll());
+        
         return $this->render('@SportOase/admin/dashboard.html.twig', [
             'users' => $users,
             'bookings' => $bookings,
+            'bookings_this_week' => $bookingsThisWeek,
+            'blocked_slots' => $blockedSlots,
         ]);
     }
 
