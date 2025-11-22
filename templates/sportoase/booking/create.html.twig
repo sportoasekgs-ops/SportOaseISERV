@@ -67,8 +67,8 @@
                         <select name="offer_type" id="offer_type" required
                                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
                             <option value="">Bitte wählen...</option>
-                            <option value="fixed">Festes Angebot</option>
-                            <option value="free">Freies Angebot</option>
+                            <option value="fixed" {% if suggested_offer_type == 'fixed' %}selected{% endif %}>Festes Angebot</option>
+                            <option value="free" {% if suggested_offer_type == 'free' %}selected{% endif %}>Freies Angebot</option>
                         </select>
                     </div>
                     
@@ -81,7 +81,8 @@
                         </label>
                         <input type="text" name="offer_label" id="offer_label" required
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
-                               placeholder="z.B. Basketball, Fußball">
+                               placeholder="z.B. Basketball, Fußball"
+                               value="{{ suggested_offer_label }}">
                     </div>
                 </div>
 

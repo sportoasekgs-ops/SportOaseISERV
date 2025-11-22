@@ -4,36 +4,37 @@ namespace SportOase\Service;
 
 use SportOase\Entity\Booking;
 use SportOase\Entity\User;
+use SportOase\Entity\BlockedSlot;
 use Doctrine\ORM\EntityManagerInterface;
 
 class BookingService
 {
-    private const PERIODS = [
-        1 => ['start' => '07:50', 'end' => '08:35'],
-        2 => ['start' => '08:35', 'end' => '09:20'],
-        3 => ['start' => '09:40', 'end' => '10:25'],
-        4 => ['start' => '10:30', 'end' => '11:15'],
-        5 => ['start' => '11:20', 'end' => '12:05'],
-        6 => ['start' => '12:10', 'end' => '12:55'],
-    ];
-
-    private const MAX_STUDENTS_PER_PERIOD = 5;
-    private const BOOKING_ADVANCE_MINUTES = 60;
-
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private ConfigService $configService
     ) {
     }
 
     public function getWeekData(int $weekOffset = 0): array
     {
-        $monday = new \DateTime('monday this week');
-        $monday->modify('+' . $weekOffset . ' weeks');
+        $now = new \DateTime();
+        $dayOfWeek = (int)$now->format('N');
+        
+        if ($weekOffset === 0 && $dayOfWeek >= 5) {
+            $monday = new \DateTime('next monday');
+        } else {
+            $monday = new \DateTime('monday this week');
+            if ($weekOffset > 0) {
+                $monday->modify("+{$weekOffset} week");
+            } elseif ($weekOffset < 0) {
+                $monday->modify("{$weekOffset} week");
+            }
+        }
         
         $weekDays = [];
         for ($i = 0; $i < 5; $i++) {
             $date = clone $monday;
-            $date->modify('+' . $i . ' days');
+            $date->modify("+{$i} days");
             $weekDays[] = [
                 'date' => $date,
                 'weekday' => $date->format('l'),
@@ -43,7 +44,7 @@ class BookingService
         
         return [
             'days' => $weekDays,
-            'periods' => self::PERIODS,
+            'periods' => $this->configService->getPeriods(),
             'start_date' => $monday,
         ];
     }
@@ -62,8 +63,14 @@ class BookingService
         $booking->setTeacher($user);
         $booking->setTeacherName($data['teacher_name']);
         $booking->setTeacherClass($data['teacher_class']);
-        $booking->setStudentsJson(json_decode($data['students_json'], true) ?? []);
-        $booking->setOfferType($data['offer_type']);
+        
+        $students = $data['students'] ?? [];
+        if (!is_array($students)) {
+            $students = json_decode($data['students_json'] ?? '[]', true) ?? [];
+        }
+        $booking->setStudentsJson($students);
+        
+        $booking->setOfferType($data['offer_type'] ?? 'free');
         $booking->setOfferLabel($data['offer_label']);
         
         $this->entityManager->persist($booking);
@@ -80,7 +87,10 @@ class BookingService
         if (isset($data['teacher_class'])) {
             $booking->setTeacherClass($data['teacher_class']);
         }
-        if (isset($data['students_json'])) {
+        if (isset($data['students'])) {
+            $students = is_array($data['students']) ? $data['students'] : json_decode($data['students_json'] ?? '[]', true) ?? [];
+            $booking->setStudentsJson($students);
+        } elseif (isset($data['students_json'])) {
             $booking->setStudentsJson(json_decode($data['students_json'], true) ?? []);
         }
         if (isset($data['offer_label'])) {
@@ -95,18 +105,15 @@ class BookingService
 
     private function validateBooking(\DateTime $date, int $period, array $data): void
     {
-        if ($date->format('N') >= 6) {
-            throw new \Exception('Wochenenden können nicht gebucht werden.');
+        if (!$this->configService->isSlotBookable($date, $period)) {
+            throw new \Exception('Dieser Slot ist nicht buchbar (Wochenende oder zu kurzer Zeitvorlauf).');
         }
         
-        $now = new \DateTime();
-        $periodStart = clone $date;
-        $periodStartTime = self::PERIODS[$period]['start'];
-        $periodStart->setTime(...explode(':', $periodStartTime));
-        
-        $diffMinutes = ($periodStart->getTimestamp() - $now->getTimestamp()) / 60;
-        if ($diffMinutes < self::BOOKING_ADVANCE_MINUTES) {
-            throw new \Exception('Buchungen müssen mindestens ' . self::BOOKING_ADVANCE_MINUTES . ' Minuten im Voraus erfolgen.');
+        $blocked = $this->entityManager
+            ->getRepository(BlockedSlot::class)
+            ->findOneBy(['date' => $date, 'period' => $period]);
+        if ($blocked) {
+            throw new \Exception('Dieser Slot ist gesperrt: ' . $blocked->getReason());
         }
         
         $existing = $this->entityManager
@@ -117,9 +124,13 @@ class BookingService
             throw new \Exception('Dieser Zeitslot ist bereits gebucht.');
         }
         
-        $students = json_decode($data['students_json'], true) ?? [];
-        if (count($students) > self::MAX_STUDENTS_PER_PERIOD) {
-            throw new \Exception('Maximale Anzahl von Schülern überschritten (' . self::MAX_STUDENTS_PER_PERIOD . ').');
+        $students = $data['students'] ?? [];
+        if (!is_array($students)) {
+            $students = json_decode($data['students_json'] ?? '[]', true) ?? [];
+        }
+        
+        if (count($students) > $this->configService->getMaxStudentsPerPeriod()) {
+            throw new \Exception('Maximale Anzahl von Schülern überschritten (' . $this->configService->getMaxStudentsPerPeriod() . ').');
         }
         
         $studentNames = array_column($students, 'name');

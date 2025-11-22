@@ -6,7 +6,10 @@ use SportOase\Entity\Booking;
 use SportOase\Entity\BlockedSlot;
 use SportOase\Entity\SlotName;
 use SportOase\Entity\User;
+use SportOase\Entity\FixedOfferName;
+use SportOase\Entity\FixedOfferPlacement;
 use SportOase\Service\BookingService;
+use SportOase\Service\ConfigService;
 use SportOase\Service\ExportService;
 use SportOase\Service\AuditService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,6 +27,7 @@ class AdminController extends AbstractController
     public function __construct(
         private EntityManagerInterface $entityManager,
         private BookingService $bookingService,
+        private ConfigService $configService,
         private ExportService $exportService,
         private AuditService $auditService
     ) {
@@ -407,5 +411,58 @@ class AdminController extends AbstractController
         ));
         
         return $response;
+    }
+
+    #[Route('/fixed-offers', name: 'sportoase_admin_fixed_offers', methods: ['GET'])]
+    public function manageFixedOffers(): Response
+    {
+        $offerNames = $this->entityManager
+            ->getRepository(FixedOfferName::class)
+            ->findAll();
+        
+        $placements = $this->entityManager
+            ->getRepository(FixedOfferPlacement::class)
+            ->findAll();
+        
+        return $this->render('@SportOase/admin/fixed_offers.html.twig', [
+            'offer_names' => $offerNames,
+            'placements' => $placements,
+            'free_modules' => $this->configService->getFreeModules(),
+        ]);
+    }
+
+    #[Route('/fixed-offers/update-name', name: 'sportoase_admin_update_offer_name', methods: ['POST'])]
+    public function updateOfferName(Request $request): Response
+    {
+        $offerKey = $request->request->get('offer_key');
+        $customName = $request->request->get('custom_name');
+        
+        $offerName = $this->entityManager
+            ->getRepository(FixedOfferName::class)
+            ->findOneBy(['offerKey' => $offerKey]);
+        
+        if ($offerName) {
+            $this->auditService->log(
+                'FixedOfferName',
+                $offerName->getId(),
+                'update',
+                $this->getUser(),
+                [
+                    'offer_key' => $offerKey,
+                    'old_name' => $offerName->getCustomName(),
+                    'new_name' => $customName
+                ],
+                'Festes Angebot umbenannt: ' . $offerKey . ' → ' . $customName
+            );
+            
+            $offerName->setCustomName($customName);
+            $this->entityManager->flush();
+            
+            $this->addFlash('success', 'Angebot erfolgreich umbenannt!');
+        } else {
+            $this->addFlash('error', 'Angebot nicht gefunden.');
+        }
+        
+        return $this->redirectToRoute('sportoase_admin_fixed_offers');
     }
 }
