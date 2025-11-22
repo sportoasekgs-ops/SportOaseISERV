@@ -66,3 +66,120 @@ function requireAdmin() {
         die('Access denied. Admin only.');
     }
 }
+
+// SportOase Configuration
+define('PERIOD_TIMES', [
+    1 => '07:50 - 08:35',
+    2 => '08:35 - 09:20',
+    3 => '09:40 - 10:25',
+    4 => '10:25 - 11:20',
+    5 => '11:40 - 12:25',
+    6 => '12:25 - 13:10'
+]);
+
+// Fixed offers - predefined courses shown in schedule (slots remain bookable)
+// Format: [weekday][period] = 'Offer Name'
+define('FIXED_OFFERS', [
+    1 => [ // Monday
+        1 => 'Wochenstart Warm-Up',
+        3 => 'Aktivierung',
+        5 => 'Regulation / Entspannung'
+    ],
+    2 => [ // Tuesday
+        2 => 'Aktivierung',
+        4 => 'Konflikt-Reset'
+    ],
+    3 => [ // Wednesday
+        1 => 'Aktivierung',
+        3 => 'Regulation / Entspannung',
+        5 => 'Turnen / flexibel'
+    ],
+    4 => [ // Thursday
+        2 => 'Konflikt-Reset',
+        5 => 'Aktivierung'
+    ],
+    5 => [ // Friday
+        2 => 'Regulation / Entspannung',
+        4 => 'Turnen / flexibel',
+        5 => 'Wochenstart Warm-Up'
+    ]
+]);
+
+// All available modules for booking (including fixed offers)
+define('FREE_MODULES', [
+    'Aktivierung',
+    'Regulation / Entspannung',
+    'Konflikt-Reset',
+    'Turnen / flexibel',
+    'Wochenstart Warm-Up'
+]);
+
+// Maximum students per period
+define('MAX_STUDENTS_PER_PERIOD', 5);
+
+// Booking advance time in minutes
+define('BOOKING_ADVANCE_MINUTES', 60);
+
+// Get custom name for an offer (from database or default)
+function getOfferCustomName($offerKey) {
+    static $customNames = null;
+    
+    if ($customNames === null) {
+        $db = getDb();
+        $stmt = $db->query("SELECT offer_key, custom_name FROM sportoase_fixed_offer_names");
+        $customNames = [];
+        while ($row = $stmt->fetch()) {
+            $customNames[$row['offer_key']] = $row['custom_name'];
+        }
+    }
+    
+    return $customNames[$offerKey] ?? $offerKey;
+}
+
+// Get fixed offer name for a slot (if exists) - returns custom name if set
+function getFixedOffer($date, $period) {
+    $dayOfWeek = (int)(new DateTime($date))->format('N'); // 1 = Monday, 7 = Sunday
+    $fixedOffers = FIXED_OFFERS;
+    $offerKey = $fixedOffers[$dayOfWeek][$period] ?? null;
+    
+    if ($offerKey === null) {
+        return null;
+    }
+    
+    return getOfferCustomName($offerKey);
+}
+
+// Check if a slot has a fixed offer (for display purposes - slot is still bookable!)
+function hasFixedOffer($date, $period) {
+    return getFixedOffer($date, $period) !== null;
+}
+
+// Check if a slot is bookable
+function isSlotBookable($date, $period) {
+    // Weekend check
+    $dayOfWeek = (int)(new DateTime($date))->format('N');
+    if ($dayOfWeek >= 6) {
+        return false; // Saturday/Sunday not bookable
+    }
+    
+    // Time advance check
+    $slotDateTime = new DateTime($date);
+    $periodTimes = PERIOD_TIMES;
+    $timeRange = $periodTimes[$period] ?? '';
+    if ($timeRange) {
+        $startTime = explode(' - ', $timeRange)[0];
+        $slotDateTime->setTime(
+            (int)substr($startTime, 0, 2),
+            (int)substr($startTime, 3, 2)
+        );
+        
+        $now = new DateTime();
+        $diffMinutes = ($slotDateTime->getTimestamp() - $now->getTimestamp()) / 60;
+        
+        if ($diffMinutes < BOOKING_ADVANCE_MINUTES) {
+            return false; // Too close to start time
+        }
+    }
+    
+    return true;
+}

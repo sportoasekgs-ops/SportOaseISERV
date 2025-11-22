@@ -1,4 +1,4 @@
-modules = ["php-8.2", "nodejs-20", "web"]
+modules = ["php-8.2", "nodejs-20", "web", "postgresql-16"]
 [agent]
 expertMode = true
 integrations = ["google-mail:1.0.0"]
@@ -40,7 +40,7 @@ localPort = 35407
 externalPort = 3001
 
 [[ports]]
-localPort = 45161
+localPort = 43787
 externalPort = 3002
 
 [[ports]]

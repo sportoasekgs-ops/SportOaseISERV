@@ -26,25 +26,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        if ($date && $period && !empty($students)) {
-            try {
-                $stmt = $db->prepare("
-                    INSERT INTO sportoase_bookings (user_id, booking_date, period, teacher_name, students_json, offer_details)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([
-                    $user['id'],
-                    $date,
-                    $period,
-                    $user['username'],
-                    json_encode($students),
-                    $offer
-                ]);
-                
-                header('Location: dashboard.php?success=booking_created');
-                exit;
-            } catch (PDOException $e) {
-                $error = 'Fehler beim Erstellen der Buchung: ' . $e->getMessage();
+        if ($date && $period && $offer && !empty($students)) {
+            // Validate module is in FREE_MODULES
+            if (!in_array($offer, FREE_MODULES)) {
+                $error = 'Ungültiges Modul. Bitte wählen Sie ein Modul aus der Liste.';
+            }
+            // Validate slot is bookable (checks: weekend, advance time - NOT fixed offers!)
+            elseif (!isSlotBookable($date, $period)) {
+                $error = 'Dieser Slot ist nicht buchbar (Wochenende oder zu kurz vor Beginn).';
+            } else {
+                // Check if slot is blocked by admin
+                $stmt = $db->prepare("SELECT id FROM sportoase_blocked_slots WHERE slot_date = ? AND period = ?");
+                $stmt->execute([$date, $period]);
+                if ($stmt->fetch()) {
+                    $error = 'Dieser Slot ist gesperrt.';
+                }
+                // Check if slot is already booked
+                elseif ($stmt = $db->prepare("SELECT id FROM sportoase_bookings WHERE booking_date = ? AND period = ?")) {
+                    $stmt->execute([$date, $period]);
+                    if ($stmt->fetch()) {
+                        $error = 'Dieser Slot ist bereits gebucht.';
+                    } else {
+                        // All validations passed, create booking
+                        try {
+                            $stmt = $db->prepare("
+                                INSERT INTO sportoase_bookings (user_id, booking_date, period, teacher_name, students_json, offer_details)
+                                VALUES (?, ?, ?, ?, ?, ?)
+                            ");
+                            $stmt->execute([
+                                $user['id'],
+                                $date,
+                                $period,
+                                $user['username'],
+                                json_encode($students),
+                                $offer
+                            ]);
+                            
+                            header('Location: dashboard.php?success=booking_created');
+                            exit;
+                        } catch (PDOException $e) {
+                            $error = 'Fehler beim Erstellen der Buchung: ' . $e->getMessage();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Edit booking
+    if ($action === 'edit_booking') {
+        $id = (int)($_POST['id'] ?? 0);
+        $offer = $_POST['offer'] ?? '';
+        $students = [];
+        
+        // Collect students
+        for ($i = 1; $i <= 5; $i++) {
+            $name = trim($_POST["student{$i}_name"] ?? '');
+            $class = trim($_POST["student{$i}_class"] ?? '');
+            if ($name && $class) {
+                $students[] = ['name' => $name, 'class' => $class];
+            }
+        }
+        
+        if ($id && $offer && !empty($students)) {
+            // Validate module is in FREE_MODULES
+            if (!in_array($offer, FREE_MODULES)) {
+                $error = 'Ungültiges Modul. Bitte wählen Sie ein Modul aus der Liste.';
+            } else {
+                try {
+                    if ($isAdminUser) {
+                        $stmt = $db->prepare("UPDATE sportoase_bookings SET offer_details = ?, students_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                        $stmt->execute([
+                            $offer,
+                            json_encode($students),
+                            $id
+                        ]);
+                    } else {
+                        $stmt = $db->prepare("UPDATE sportoase_bookings SET offer_details = ?, students_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?");
+                        $stmt->execute([
+                            $offer,
+                            json_encode($students),
+                            $id,
+                            $user['id']
+                        ]);
+                    }
+                    header('Location: dashboard.php?success=booking_updated');
+                    exit;
+                } catch (PDOException $e) {
+                    $error = 'Fehler beim Aktualisieren der Buchung: ' . $e->getMessage();
+                }
             }
         }
     }
@@ -87,8 +157,8 @@ $bookingsStmt = $db->prepare("
     SELECT b.*, u.username as teacher_username
     FROM sportoase_bookings b
     JOIN sportoase_users u ON b.user_id = u.id
-    WHERE b.date BETWEEN ? AND ?
-    ORDER BY b.date, b.period
+    WHERE b.booking_date BETWEEN ? AND ?
+    ORDER BY b.booking_date, b.period
 ");
 $bookingsStmt->execute([$weekStart, $weekEnd]);
 $bookings = $bookingsStmt->fetchAll();
@@ -96,7 +166,7 @@ $bookings = $bookingsStmt->fetchAll();
 // Get blocked slots
 $blockedStmt = $db->prepare("
     SELECT * FROM sportoase_blocked_slots
-    WHERE date BETWEEN ? AND ?
+    WHERE slot_date BETWEEN ? AND ?
 ");
 $blockedStmt->execute([$weekStart, $weekEnd]);
 $blockedSlots = $blockedStmt->fetchAll();
@@ -104,25 +174,18 @@ $blockedSlots = $blockedStmt->fetchAll();
 // Build matrices
 $schedule = [];
 foreach ($bookings as $booking) {
-    $key = $booking['date'] . '_' . $booking['period'];
+    $key = $booking['booking_date'] . '_' . $booking['period'];
     $schedule[$key] = $booking;
 }
 
 $blocked = [];
 foreach ($blockedSlots as $slot) {
-    $key = $slot['date'] . '_' . $slot['period'];
+    $key = $slot['slot_date'] . '_' . $slot['period'];
     $blocked[$key] = $slot;
 }
 
-// Time periods
-$periods = [
-    1 => '07:50 - 08:35',
-    2 => '08:35 - 09:20',
-    3 => '09:40 - 10:25',
-    4 => '10:25 - 11:20',
-    5 => '11:40 - 12:25',
-    6 => '12:25 - 13:10'
-];
+// Time periods from config
+$periods = PERIOD_TIMES;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -223,22 +286,31 @@ $periods = [
                                     $day = (clone $monday)->modify("+{$i} days");
                                     $dateStr = $day->format('Y-m-d');
                                     $key = $dateStr . '_' . $periodNum;
+                                    
+                                    // Get data for this slot
                                     $booking = $schedule[$key] ?? null;
                                     $isBlocked = isset($blocked[$key]);
+                                    $fixedOffer = getFixedOffer($dateStr, $periodNum);
+                                    $hasFixedOffer = $fixedOffer !== null;
+                                    
+                                    // Calculate bookability: NOT blocked AND passes time/weekend checks
+                                    $bookable = !$isBlocked && isSlotBookable($dateStr, $periodNum);
                                     ?>
                                     <td class="px-2 py-2">
                                         <?php if ($isBlocked): ?>
+                                            <!-- Gesperrter Slot - NICHT buchbar -->
                                             <div class="bg-orange-100 border border-orange-300 rounded-lg p-3 text-center">
                                                 <div class="text-sm font-semibold text-orange-700">🔒 Gesperrt</div>
                                                 <div class="text-xs text-orange-600 mt-1"><?= htmlspecialchars($blocked[$key]['reason']) ?></div>
                                             </div>
                                         <?php elseif ($booking): ?>
+                                            <!-- Bereits gebucht -->
                                             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                                 <div class="text-sm font-semibold text-blue-700 mb-2">
                                                     <?= htmlspecialchars($booking['teacher_username']) ?>
                                                 </div>
                                                 <div class="text-xs text-gray-600 mb-1">
-                                                    <?= htmlspecialchars($booking['offer_details'] ?? 'Sportangebot') ?>
+                                                    📌 <?= htmlspecialchars($booking['offer_details'] ?? 'Sportangebot') ?>
                                                 </div>
                                                 <div class="text-xs text-gray-600 space-y-1">
                                                     <?php 
@@ -249,22 +321,44 @@ $periods = [
                                                     <?php endforeach; ?>
                                                 </div>
                                                 <?php if ($isAdminUser || $booking['user_id'] == $user['id']): ?>
-                                                    <form method="POST" class="mt-2" onsubmit="return confirm('Buchung löschen?')">
-                                                        <input type="hidden" name="action" value="delete_booking">
-                                                        <input type="hidden" name="id" value="<?= $booking['id'] ?>">
-                                                        <button class="text-xs text-red-600 hover:text-red-700 underline">
-                                                            Löschen
+                                                    <div class="mt-2 flex gap-2">
+                                                        <button 
+                                                            onclick="openEditModal(<?= $booking['id'] ?>, '<?= htmlspecialchars($booking['offer_details'], ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($students), ENT_QUOTES) ?>)"
+                                                            class="text-xs text-blue-600 hover:text-blue-700 underline"
+                                                        >
+                                                            Bearbeiten
                                                         </button>
-                                                    </form>
+                                                        <form method="POST" class="inline" onsubmit="return confirm('Buchung löschen?')">
+                                                            <input type="hidden" name="action" value="delete_booking">
+                                                            <input type="hidden" name="id" value="<?= $booking['id'] ?>">
+                                                            <button class="text-xs text-red-600 hover:text-red-700 underline">
+                                                                Löschen
+                                                            </button>
+                                                        </form>
+                                                    </div>
                                                 <?php endif; ?>
                                             </div>
-                                        <?php else: ?>
+                                        <?php elseif ($bookable && $hasFixedOffer): ?>
+                                            <!-- Slot mit festem Angebot - ABER BUCHBAR! -->
+                                            <button 
+                                                onclick="openBookingModal('<?= $dateStr ?>', <?= $periodNum ?>)"
+                                                class="w-full bg-yellow-50 hover:bg-yellow-100 border border-yellow-300 rounded-lg p-3 text-sm transition"
+                                            >
+                                                <div class="font-semibold text-yellow-800">⭐ <?= htmlspecialchars($fixedOffer) ?></div>
+                                                <div class="text-xs text-yellow-700 mt-1">+ Überschreiben / Buchen</div>
+                                            </button>
+                                        <?php elseif ($bookable): ?>
+                                            <!-- Freier Slot - buchbar -->
                                             <button 
                                                 onclick="openBookingModal('<?= $dateStr ?>', <?= $periodNum ?>)"
                                                 class="w-full bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-3 text-sm text-green-700 font-medium transition"
                                             >
                                                 + Buchen
                                             </button>
+                                        <?php else: ?>
+                                            <div class="bg-gray-100 border border-gray-300 rounded-lg p-3 text-center">
+                                                <div class="text-xs text-gray-500">Nicht verfügbar</div>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                 <?php endfor; ?>
@@ -287,8 +381,13 @@ $periods = [
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Neue Buchung erstellen</h2>
                 
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Angebot / Aktivität *</label>
-                    <input type="text" name="offer" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="z.B. Fußball, Basketball, Volleyball">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Modul / Aktivität *</label>
+                    <select name="offer" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Modul wählen --</option>
+                        <?php foreach (FREE_MODULES as $module): ?>
+                            <option value="<?= htmlspecialchars($module) ?>"><?= htmlspecialchars($module) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 
                 <div class="mb-6">
@@ -315,6 +414,49 @@ $periods = [
         </div>
     </div>
 
+    <!-- Edit Booking Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form method="POST" class="p-8">
+                <input type="hidden" name="action" value="edit_booking">
+                <input type="hidden" name="id" id="edit_booking_id">
+                
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Buchung bearbeiten</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Modul / Aktivität *</label>
+                    <select name="offer" id="edit_offer" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Modul wählen --</option>
+                        <?php foreach (FREE_MODULES as $module): ?>
+                            <option value="<?= htmlspecialchars($module) ?>"><?= htmlspecialchars($module) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-4">Schüler (mindestens 1, maximal 5) *</label>
+                    <div class="space-y-3" id="edit_students_container">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <div class="flex gap-3">
+                                <input type="text" name="student<?= $i ?>_name" id="edit_student<?= $i ?>_name" placeholder="Name des Schülers" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" <?= $i === 1 ? 'required' : '' ?>>
+                                <input type="text" name="student<?= $i ?>_class" id="edit_student<?= $i ?>_class" placeholder="Klasse" class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" <?= $i === 1 ? 'required' : '' ?>>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                        Änderungen speichern
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="px-6 py-3 text-gray-600 hover:text-gray-800 transition">
+                        Abbrechen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function openBookingModal(date, period) {
             document.getElementById('modal_date').value = date;
@@ -326,10 +468,42 @@ $periods = [
             document.getElementById('bookingModal').classList.add('hidden');
         }
         
-        // Close modal on outside click
+        function openEditModal(id, offer, students) {
+            document.getElementById('edit_booking_id').value = id;
+            document.getElementById('edit_offer').value = offer;
+            
+            // Clear all student fields first
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById('edit_student' + i + '_name').value = '';
+                document.getElementById('edit_student' + i + '_class').value = '';
+            }
+            
+            // Fill in existing students
+            students.forEach((student, index) => {
+                const num = index + 1;
+                if (num <= 5) {
+                    document.getElementById('edit_student' + num + '_name').value = student.name;
+                    document.getElementById('edit_student' + num + '_class').value = student.class;
+                }
+            });
+            
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+        
+        // Close modals on outside click
         document.getElementById('bookingModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeBookingModal();
+            }
+        });
+        
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
             }
         });
     </script>

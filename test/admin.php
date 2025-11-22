@@ -42,6 +42,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // Edit booking
+    if ($action === 'edit_booking') {
+        $id = (int)($_POST['id'] ?? 0);
+        $offer = $_POST['offer'] ?? '';
+        $students = [];
+        
+        // Collect students
+        for ($i = 1; $i <= 5; $i++) {
+            $name = trim($_POST["student{$i}_name"] ?? '');
+            $class = trim($_POST["student{$i}_class"] ?? '');
+            if ($name && $class) {
+                $students[] = ['name' => $name, 'class' => $class];
+            }
+        }
+        
+        if ($id && $offer && !empty($students)) {
+            // Validate module is in FREE_MODULES
+            if (!in_array($offer, FREE_MODULES)) {
+                $error = 'Ungültiges Modul. Bitte wählen Sie ein Modul aus der Liste.';
+            } else {
+                try {
+                    $stmt = $db->prepare("UPDATE sportoase_bookings SET offer_details = ?, students_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+                    $stmt->execute([
+                        $offer,
+                        json_encode($students),
+                        $id
+                    ]);
+                    header('Location: admin.php?success=booking_updated');
+                    exit;
+                } catch (PDOException $e) {
+                    $error = 'Fehler beim Aktualisieren der Buchung: ' . $e->getMessage();
+                }
+            }
+        }
+    }
+    
     // Delete booking
     if ($action === 'delete_booking') {
         $id = (int)($_POST['id'] ?? 0);
@@ -92,6 +128,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     }
+    
+    // Update fixed offer name
+    if ($action === 'update_fixed_offer_name') {
+        $offerKey = $_POST['offer_key'] ?? '';
+        $customName = trim($_POST['custom_name'] ?? '');
+        
+        if ($offerKey && $customName) {
+            $stmt = $db->prepare("
+                UPDATE sportoase_fixed_offer_names
+                SET custom_name = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE offer_key = ?
+            ");
+            $stmt->execute([$customName, $offerKey]);
+            header('Location: admin.php?tab=fixed_offers&success=offer_name_updated');
+            exit;
+        }
+    }
 }
 
 // Get statistics
@@ -133,6 +186,12 @@ $allBlockedSlots = $db->query("
 $allSlotNames = $db->query("
     SELECT * FROM sportoase_slot_names
     ORDER BY slot_date DESC, period
+")->fetchAll();
+
+// Get fixed offer names
+$fixedOfferNames = $db->query("
+    SELECT * FROM sportoase_fixed_offer_names
+    ORDER BY offer_key
 ")->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -213,6 +272,9 @@ $allSlotNames = $db->query("
                     <button onclick="showTab('slotnames')" id="tab-slotnames" class="tab-btn border-b-2 border-transparent px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
                         Slot-Namen
                     </button>
+                    <button onclick="showTab('fixed_offers')" id="tab-fixed_offers" class="tab-btn border-b-2 border-transparent px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Feste Angebote
+                    </button>
                 </nav>
             </div>
 
@@ -245,11 +307,19 @@ $allSlotNames = $db->query("
                                         ?>
                                     </td>
                                     <td class="px-4 py-3 text-sm">
-                                        <form method="POST" onsubmit="return confirm('Buchung löschen?')">
-                                            <input type="hidden" name="action" value="delete_booking">
-                                            <input type="hidden" name="id" value="<?= $booking['id'] ?>">
-                                            <button class="text-red-600 hover:text-red-700 font-medium">Löschen</button>
-                                        </form>
+                                        <div class="flex gap-3">
+                                            <button 
+                                                onclick="openEditModal(<?= $booking['id'] ?>, '<?= htmlspecialchars($booking['offer_details'], ENT_QUOTES) ?>', <?= htmlspecialchars(json_encode($students), ENT_QUOTES) ?>)"
+                                                class="text-blue-600 hover:text-blue-700 font-medium"
+                                            >
+                                                Bearbeiten
+                                            </button>
+                                            <form method="POST" class="inline" onsubmit="return confirm('Buchung löschen?')">
+                                                <input type="hidden" name="action" value="delete_booking">
+                                                <input type="hidden" name="id" value="<?= $booking['id'] ?>">
+                                                <button class="text-red-600 hover:text-red-700 font-medium">Löschen</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -454,6 +524,88 @@ $allSlotNames = $db->query("
                     </div>
                 </div>
             </div>
+            
+            <!-- Fixed Offers Tab -->
+            <div id="content-fixed_offers" class="tab-content hidden p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Feste Angebote umbenennen</h3>
+                <p class="text-sm text-gray-600 mb-6">
+                    Diese Namen werden im Wochenplan für die festen Angebote angezeigt. Sie können die Namen jederzeit anpassen.
+                </p>
+                
+                <div class="space-y-4">
+                    <?php foreach ($fixedOfferNames as $offerName): ?>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <form method="POST" class="flex items-center gap-4">
+                                <input type="hidden" name="action" value="update_fixed_offer_name">
+                                <input type="hidden" name="offer_key" value="<?= htmlspecialchars($offerName['offer_key']) ?>">
+                                
+                                <div class="flex-1">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">
+                                        Original: <?= htmlspecialchars($offerName['offer_key']) ?>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        name="custom_name" 
+                                        value="<?= htmlspecialchars($offerName['custom_name']) ?>" 
+                                        required 
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    >
+                                </div>
+                                
+                                <button 
+                                    type="submit" 
+                                    class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition"
+                                >
+                                    Speichern
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Booking Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <form method="POST" class="p-8">
+                <input type="hidden" name="action" value="edit_booking">
+                <input type="hidden" name="id" id="edit_booking_id">
+                
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Buchung bearbeiten</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Modul / Aktivität *</label>
+                    <select name="offer" id="edit_offer" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Modul wählen --</option>
+                        <?php foreach (FREE_MODULES as $module): ?>
+                            <option value="<?= htmlspecialchars($module) ?>"><?= htmlspecialchars($module) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-4">Schüler (mindestens 1, maximal 5) *</label>
+                    <div class="space-y-3">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <div class="flex gap-3">
+                                <input type="text" name="student<?= $i ?>_name" id="edit_student<?= $i ?>_name" placeholder="Name des Schülers" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" <?= $i === 1 ? 'required' : '' ?>>
+                                <input type="text" name="student<?= $i ?>_class" id="edit_student<?= $i ?>_class" placeholder="Klasse" class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" <?= $i === 1 ? 'required' : '' ?>>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                        Änderungen speichern
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="px-6 py-3 text-gray-600 hover:text-gray-800 transition">
+                        Abbrechen
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -478,6 +630,48 @@ $allSlotNames = $db->query("
             btn.classList.remove('border-transparent', 'text-gray-500');
             btn.classList.add('border-blue-500', 'text-blue-600');
         }
+        
+        function openEditModal(id, offer, students) {
+            document.getElementById('edit_booking_id').value = id;
+            document.getElementById('edit_offer').value = offer;
+            
+            // Clear all student fields first
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById('edit_student' + i + '_name').value = '';
+                document.getElementById('edit_student' + i + '_class').value = '';
+            }
+            
+            // Fill in existing students
+            students.forEach((student, index) => {
+                const num = index + 1;
+                if (num <= 5) {
+                    document.getElementById('edit_student' + num + '_name').value = student.name;
+                    document.getElementById('edit_student' + num + '_class').value = student.class;
+                }
+            });
+            
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+        
+        // Close modal on outside click
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+        
+        // Check URL parameter for tab on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            if (tab) {
+                showTab(tab);
+            }
+        });
     </script>
 </body>
 </html>
