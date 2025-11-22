@@ -1,0 +1,41 @@
+Source: iserv-sportoase
+Section: iserv
+Priority: optional
+Maintainer: SportOase Team <sportoase.kg@gmail.com>
+Build-Depends: debhelper (>= 11), 
+               nodejs, 
+               npm,
+               composer,
+               php-cli,
+               php-xml,
+               php-mbstring,
+               php-curl,
+               php-zip
+Standards-Version: 4.5.1
+Homepage: https://github.com/sportoase/iserv-sportoase
+
+Package: iserv-sportoase
+Architecture: all
+Depends: ${misc:Depends},
+         iserv-portal,
+         php (>= 8.0),
+         php-cli,
+         php-pgsql,
+         php-xml,
+         php-mbstring,
+         php-curl,
+         php-json,
+         php-zip,
+         php-gd
+Description: SportOase - IServ module for booking sports facilities
+ This IServ module provides a comprehensive booking system for school
+ sports facilities with the following features:
+  - Weekly schedule view with 6 customizable time periods
+  - Student capacity management (max 5 students per booking)
+  - Email notifications for bookings
+  - Admin dashboard for oversight
+  - Automatic weekend blocking
+  - 60-minute advance booking requirement
+  - Modern, mobile-responsive design with Tailwind CSS
+  - PostgreSQL database with Doctrine ORM
+  - Optional Google Calendar integration

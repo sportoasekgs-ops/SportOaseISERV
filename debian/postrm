@@ -1,0 +1,51 @@
+#!/bin/bash
+set -e
+
+# Post-removal script for iserv-sportoase
+
+case "$1" in
+    remove|purge)
+        echo "Removing SportOase module..."
+        
+        # Remove cache/log directories
+        rm -rf /var/cache/iserv/sportoase
+        rm -rf /var/log/iserv/sportoase
+        
+        # On purge, remove configuration files
+        if [ "$1" = "purge" ]; then
+            echo "Purging configuration files..."
+            rm -f /etc/iserv/sportoase.env
+            
+            echo ""
+            echo "========================================="
+            echo "WARNING: Database tables NOT removed!"
+            echo "========================================="
+            echo "To remove SportOase database tables, run:"
+            echo "  sudo -u postgres psql iserv_database"
+            echo "  DROP TABLE sportoase_notifications CASCADE;"
+            echo "  DROP TABLE sportoase_blocked_slots CASCADE;"
+            echo "  DROP TABLE sportoase_bookings CASCADE;"
+            echo "  DROP TABLE sportoase_slot_names CASCADE;"
+            echo "  DROP TABLE sportoase_users CASCADE;"
+            echo "========================================="
+            echo ""
+        fi
+        
+        # Reload IServ services
+        if [ -x /usr/sbin/iserv-reload ]; then
+            /usr/sbin/iserv-reload
+        fi
+        ;;
+        
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        ;;
+        
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

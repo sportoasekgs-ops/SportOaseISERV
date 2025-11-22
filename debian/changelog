@@ -1,0 +1,14 @@
+iserv-sportoase (1.0.0) stable; urgency=medium
+
+  * Initial release of SportOase IServ Module
+  * Modern UI design system with Tailwind CSS (compiled assets)
+  * Complete booking system with capacity management
+  * Admin dashboard with statistics
+  * Email notification system via SMTP
+  * Database migrations for PostgreSQL
+  * Responsive mobile design
+  * German language interface
+  * Production-ready asset compilation
+  * Comprehensive documentation (Setup guides for OAuth2, Email, Database)
+
+ -- SportOase Team <sportoase.kg@gmail.com>  Fri, 22 Nov 2025 15:00:00 +0100

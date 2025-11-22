@@ -1,0 +1,43 @@
+# Composer
+/vendor/
+composer.phar
+composer.lock
+
+# Symfony
+/var/
+/public/bundles/
+/public/build/
+.env.local
+.env.local.php
+.env.*.local
+
+# PHPUnit
+/.phpunit.cache
+/phpunit.xml
+
+# Build artifacts
+/build/
+
+# IDEs
+/.vscode/
+/.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/var/log/*
+
+# Cache
+/var/cache/*
+
+# Debian packaging
+/debian/files
+/debian/*.substvars
+/debian/*.debhelper
+/debian/tmp/

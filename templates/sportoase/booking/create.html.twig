@@ -1,0 +1,246 @@
+{% extends '@SportOase/base.html.twig' %}
+
+{% block title %}Buchung erstellen{% endblock %}
+
+{% block header %}
+    <h2 class="text-2xl font-bold text-gray-900">
+        Neue Buchung erstellen
+    </h2>
+{% endblock %}
+
+{% block content %}
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
+                <div class="flex items-center gap-3">
+                    <div class="bg-primary-600 rounded-lg p-2">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Buchungsdetails</h3>
+                        <p class="text-sm text-gray-600">Datum: {{ date|date('d.m.Y') }} | {{ period }}. Stunde</p>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post" id="bookingForm" class="px-6 py-6 space-y-6">
+                <input type="hidden" name="date" value="{{ date }}">
+                <input type="hidden" name="period" value="{{ period }}">
+                <input type="hidden" name="students_json" id="studentsJsonInput">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            Lehrername
+                        </label>
+                        <input type="text" name="teacher_name" id="teacher_name" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
+                               placeholder="z.B. Frau Müller">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                            Klasse
+                        </label>
+                        <input type="text" name="teacher_class" id="teacher_class" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
+                               placeholder="z.B. 5a">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                            Angebotstyp
+                        </label>
+                        <select name="offer_type" id="offer_type" required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition">
+                            <option value="">Bitte wählen...</option>
+                            <option value="fixed">Festes Angebot</option>
+                            <option value="free">Freies Angebot</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Angebotsname
+                        </label>
+                        <input type="text" name="offer_label" id="offer_label" required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
+                               placeholder="z.B. Basketball, Fußball">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="block text-sm font-medium text-gray-700">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            Schülerliste <span class="text-gray-500">(max. 5 Schüler)</span>
+                        </label>
+                        <button type="button" id="addStudentBtn" 
+                                class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Schüler hinzufügen
+                        </button>
+                    </div>
+                    
+                    <div id="studentsList" class="space-y-3">
+                        <div class="student-row flex gap-3 items-start p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex-1">
+                                <input type="text" class="student-name w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" 
+                                       placeholder="Name des Schülers" required>
+                            </div>
+                            <div class="w-32">
+                                <input type="text" class="student-class w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" 
+                                       placeholder="Klasse" required>
+                            </div>
+                            <button type="button" class="remove-student-btn mt-1 p-2 text-red-600 hover:bg-red-100 rounded-lg transition" title="Entfernen">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-2 text-sm text-gray-500">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Fügen Sie bis zu 5 Schüler hinzu
+                    </p>
+                </div>
+
+                <div class="flex gap-3 pt-6 border-t border-gray-200">
+                    <button type="submit" 
+                            class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white text-base font-medium rounded-lg shadow-sm transition btn-hover-scale">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Buchung erstellen
+                    </button>
+                    <a href="{{ path('sportoase_dashboard') }}" 
+                       class="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 text-base font-medium rounded-lg shadow-sm transition">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    const MAX_STUDENTS = 5;
+    let studentCount = 1;
+
+    const addStudentBtn = document.getElementById('addStudentBtn');
+    const studentsList = document.getElementById('studentsList');
+    const bookingForm = document.getElementById('bookingForm');
+
+    function createStudentRow() {
+        const row = document.createElement('div');
+        row.className = 'student-row flex gap-3 items-start p-4 bg-gray-50 rounded-lg border border-gray-200';
+        row.innerHTML = `
+            <div class="flex-1">
+                <input type="text" class="student-name w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" 
+                       placeholder="Name des Schülers" required>
+            </div>
+            <div class="w-32">
+                <input type="text" class="student-class w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition" 
+                       placeholder="Klasse" required>
+            </div>
+            <button type="button" class="remove-student-btn mt-1 p-2 text-red-600 hover:bg-red-100 rounded-lg transition" title="Entfernen">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        `;
+        return row;
+    }
+
+    function updateButtonState() {
+        const currentCount = studentsList.querySelectorAll('.student-row').length;
+        studentCount = currentCount;
+        
+        if (currentCount >= MAX_STUDENTS) {
+            addStudentBtn.disabled = true;
+            addStudentBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            addStudentBtn.disabled = false;
+            addStudentBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    addStudentBtn.addEventListener('click', function() {
+        if (studentCount < MAX_STUDENTS) {
+            const newRow = createStudentRow();
+            studentsList.appendChild(newRow);
+            updateButtonState();
+        }
+    });
+
+    studentsList.addEventListener('click', function(e) {
+        const btn = e.target.closest('.remove-student-btn');
+        if (btn) {
+            const rows = studentsList.querySelectorAll('.student-row');
+            if (rows.length > 1) {
+                btn.closest('.student-row').remove();
+                updateButtonState();
+            } else {
+                alert('Mindestens ein Schüler muss eingegeben werden.');
+            }
+        }
+    });
+
+    bookingForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const students = [];
+        const studentRows = studentsList.querySelectorAll('.student-row');
+        
+        studentRows.forEach(row => {
+            const name = row.querySelector('.student-name').value.trim();
+            const studentClass = row.querySelector('.student-class').value.trim();
+            
+            if (name && studentClass) {
+                students.push({
+                    name: name,
+                    class: studentClass
+                });
+            }
+        });
+        
+        if (students.length === 0) {
+            alert('Bitte fügen Sie mindestens einen Schüler hinzu.');
+            return false;
+        }
+        
+        document.getElementById('studentsJsonInput').value = JSON.stringify(students);
+        
+        this.submit();
+    });
+
+    updateButtonState();
+</script>
+{% endblock %}

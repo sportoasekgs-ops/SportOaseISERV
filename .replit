@@ -1,0 +1,52 @@
+modules = ["php-8.2", "nodejs-20", "web"]
+[agent]
+expertMode = true
+integrations = ["google-mail:1.0.0"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["openssl", "postgresql"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "IServ Module Info"
+
+[[workflows.workflow]]
+name = "IServ Module Info"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "php -S 0.0.0.0:5000 index.php"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 42471
+externalPort = 3001
+
+[[ports]]
+localPort = 45773
+externalPort = 3003
+
+[[ports]]
+localPort = 46183
+externalPort = 3000
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]

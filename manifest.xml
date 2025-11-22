@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+  <metadata>
+    <name>SportOase</name>
+    <vendor>SportOase Team</vendor>
+    <version>1.0.0</version>
+    <description>Booking system for school sports facilities with capacity management and admin controls</description>
+    <description xml:lang="de">Buchungssystem für Schul-Sportanlagen mit Kapazitätsverwaltung und Admin-Kontrollen</description>
+    <icon>icon.png</icon>
+    <license>Proprietary</license>
+    <copyright>2025 SportOase Team</copyright>
+    <homepage>https://sportoase.local</homepage>
+    <author>SportOase Team</author>
+    <email>admin@sportoase.local</email>
+  </metadata>
+
+  <requirements>
+    <iserv min-version="3.0" max-version="*"/>
+    <php min-version="8.0"/>
+    <database type="postgres"/>
+  </requirements>
+
+  <routes>
+    <route path="/sportoase" name="sportoase_dashboard" controller="SportOase\Controller\DashboardController::dashboard">
+      <requires role="teacher"/>
+      <menu name="main" label="SportOase" icon="sports"/>
+    </route>
+
+    <route path="/sportoase/admin" name="sportoase_admin_dashboard" controller="SportOase\Controller\AdminController::dashboard">
+      <requires role="admin"/>
+      <menu name="admin" label="SportOase Admin" icon="settings"/>
+    </route>
+
+    <route path="/sportoase/booking/create" name="sportoase_booking_create" controller="SportOase\Controller\BookingController::create" method="GET,POST">
+      <requires role="teacher"/>
+    </route>
+
+    <route path="/sportoase/booking/{id}/delete" name="sportoase_booking_delete" controller="SportOase\Controller\BookingController::delete" method="POST">
+      <requires role="teacher"/>
+    </route>
+
+    <route path="/sportoase/admin/booking/{id}/edit" name="sportoase_admin_booking_edit" controller="SportOase\Controller\AdminController::editBooking" method="GET,POST">
+      <requires role="admin"/>
+    </route>
+
+    <route path="/sportoase/admin/slots/manage" name="sportoase_admin_manage_slots" controller="SportOase\Controller\AdminController::manageSlots" method="GET,POST">
+      <requires role="admin"/>
+    </route>
+  </routes>
+
+  <permissions>
+    <permission name="sportoase.view">
+      <label>View SportOase</label>
+      <label xml:lang="de">SportOase anzeigen</label>
+      <assigned-to>teacher, admin</assigned-to>
+    </permission>
+
+    <permission name="sportoase.book">
+      <label>Create Bookings</label>
+      <label xml:lang="de">Buchungen erstellen</label>
+      <assigned-to>teacher, admin</assigned-to>
+    </permission>
+
+    <permission name="sportoase.manage">
+      <label>Manage SportOase</label>
+      <label xml:lang="de">SportOase verwalten</label>
+      <assigned-to>admin</assigned-to>
+    </permission>
+  </permissions>
+
+  <settings>
+    <setting name="max_students_per_period" type="integer" default="5">
+      <label>Maximum Students per Period</label>
+      <label xml:lang="de">Maximale Schüler pro Stunde</label>
+      <description>Maximum number of students allowed to book a single time slot</description>
+    </setting>
+
+    <setting name="booking_advance_minutes" type="integer" default="60">
+      <label>Booking Advance Notice (Minutes)</label>
+      <label xml:lang="de">Buchungsvorlaufzeit (Minuten)</label>
+      <description>Minimum minutes before a booking deadline</description>
+    </setting>
+
+    <setting name="enable_google_calendar" type="boolean" default="false">
+      <label>Enable Google Calendar Integration</label>
+      <label xml:lang="de">Google Calendar Integration aktivieren</label>
+    </setting>
+
+    <setting name="enable_notifications" type="boolean" default="true">
+      <label>Enable Email Notifications</label>
+      <label xml:lang="de">E-Mail-Benachrichtigungen aktivieren</label>
+    </setting>
+
+    <setting name="smtp_host" type="string" default="">
+      <label>SMTP Server</label>
+      <description>Email server for notifications</description>
+    </setting>
+
+    <setting name="smtp_port" type="integer" default="587">
+      <label>SMTP Port</label>
+    </setting>
+  </settings>
+
+  <database>
+    <migration version="001" name="create_initial_schema">
+      <description>Creates base tables for SportOase bookings and management</description>
+    </migration>
+  </database>
+
+  <features>
+    <feature name="bookings" enabled="true">
+      <label>Booking Management</label>
+      <description>Create, view, and manage bookings</description>
+    </feature>
+
+    <feature name="notifications" enabled="true">
+      <label>Notifications</label>
+      <description>Real-time and email notifications</description>
+    </feature>
+
+    <feature name="admin" enabled="true">
+      <label>Admin Controls</label>
+      <description>Teacher management and booking administration</description>
+    </feature>
+
+    <feature name="calendar" enabled="false">
+      <label>Google Calendar Sync</label>
+      <description>Automatic calendar event creation</description>
+    </feature>
+  </features>
+
+  <integration>
+    <sso enabled="true">
+      <description>Integrates with IServ Single Sign-On</description>
+      <map-field from="iserv.username" to="user.username"/>
+      <map-field from="iserv.email" to="user.email"/>
+      <map-field from="iserv.role" to="user.role"/>
+    </sso>
+  </integration>
+
+  <dependencies>
+    <dependency type="module" name="auth" version="3.0"/>
+    <dependency type="library" name="symfony/framework-bundle" version="^6.4"/>
+    <dependency type="library" name="doctrine/orm" version="^2.17"/>
+    <dependency type="library" name="symfony/twig-bundle" version="^6.4"/>
+  </dependencies>
+
+  <changelog>
+    <version number="1.0.0" date="2025-11-22">
+      <change type="feature">Initial release</change>
+      <change type="feature">IServ SSO integration</change>
+      <change type="feature">Supabase backend</change>
+      <change type="feature">Admin panel with booking management</change>
+    </version>
+  </changelog>
+
+  <support>
+    <documentation url="https://sportoase.local/help"/>
+    <issue-tracker url="https://sportoase.local/issues"/>
+    <contact email="support@sportoase.local"/>
+  </support>
+</module>

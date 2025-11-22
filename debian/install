@@ -1,0 +1,25 @@
+# Source code
+src/*                                   usr/share/iserv/modules/sportoase/src/
+templates/*                             usr/share/iserv/modules/sportoase/templates/
+config/*                                usr/share/iserv/modules/sportoase/config/
+migrations/*                            usr/share/iserv/modules/sportoase/migrations/
+
+# Compiled assets
+public/build/*                          usr/share/iserv/modules/sportoase/public/build/
+
+# Configuration files
+composer.json                           usr/share/iserv/modules/sportoase/
+manifest.xml                            usr/share/iserv/modules/sportoase/
+
+# Documentation
+README.md                               usr/share/doc/iserv-sportoase/
+ISERV_SSO_SETUP.md                      usr/share/doc/iserv-sportoase/
+EMAIL_SETUP.md                          usr/share/doc/iserv-sportoase/
+DATABASE_SETUP.md                       usr/share/doc/iserv-sportoase/
+CURRENT_STATUS.md                       usr/share/doc/iserv-sportoase/
+
+# Environment template
+.env.example                            usr/share/doc/iserv-sportoase/
+
+# PHP dependencies (installed by composer during build)
+vendor/*                                usr/share/iserv/modules/sportoase/vendor/

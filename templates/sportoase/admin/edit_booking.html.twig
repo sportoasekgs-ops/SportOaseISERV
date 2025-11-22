@@ -1,0 +1,29 @@
+{% extends '@SportOase/base.html.twig' %}
+
+{% block title %}Buchung bearbeiten{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Buchung bearbeiten</h1>
+    
+    <form method="post">
+        <div class="form-group">
+            <label>Lehrername:</label>
+            <input type="text" name="teacher_name" value="{{ booking.teacherName }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Klasse:</label>
+            <input type="text" name="teacher_class" value="{{ booking.teacherClass }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Angebotsname:</label>
+            <input type="text" name="offer_label" value="{{ booking.offerLabel }}" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Speichern</button>
+        <a href="{{ path('sportoase_admin_dashboard') }}" class="btn">Abbrechen</a>
+    </form>
+</div>
+{% endblock %}

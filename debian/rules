@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+%:
+        dh $@
+
+override_dh_auto_build:
+        # Install PHP dependencies (production only)
+        composer install --no-dev --optimize-autoloader --no-interaction
+        
+        # Install Node.js dependencies (including dev deps for build)
+        npm ci --production=false
+        
+        # Build production assets with stable filenames
+        NODE_ENV=production npm run build
+        
+        # Verify assets were built
+        test -f public/build/app.css || (echo "ERROR: app.css not built!" && exit 1)
+        test -f public/build/app.js || (echo "ERROR: app.js not built!" && exit 1)
+        test -f public/build/runtime.js || (echo "ERROR: runtime.js not built!" && exit 1)
+        
+        # Clean up node_modules to reduce package size (not needed at runtime)
+        rm -rf node_modules
+
+override_dh_auto_clean:
+        dh_auto_clean
+        rm -rf vendor/
+        rm -rf node_modules/
+        rm -rf public/build/
+
+override_dh_install:
+        # Verify build artifacts exist (warnings only, build should have created them)
+        @test -d public/build || echo "WARNING: public/build/ missing"
+        @test -d vendor || echo "WARNING: vendor/ missing"
+        dh_install
+
+override_dh_auto_install:
+        dh_auto_install

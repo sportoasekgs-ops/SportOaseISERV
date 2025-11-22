@@ -1,0 +1,85 @@
+#!/bin/bash
+set -e
+
+# Post-installation script for iserv-sportoase
+
+case "$1" in
+    configure)
+        echo "Setting up SportOase IServ Module..."
+        
+        # Set correct permissions
+        chown -R www-data:www-data /usr/share/iserv/modules/sportoase
+        chmod -R 755 /usr/share/iserv/modules/sportoase
+        
+        # Ensure writable cache/log directories
+        mkdir -p /var/cache/iserv/sportoase
+        mkdir -p /var/log/iserv/sportoase
+        chown -R www-data:www-data /var/cache/iserv/sportoase
+        chown -R www-data:www-data /var/log/iserv/sportoase
+        chmod 775 /var/cache/iserv/sportoase
+        chmod 775 /var/log/iserv/sportoase
+        
+        # Create environment file if it doesn't exist
+        if [ ! -f /etc/iserv/sportoase.env ]; then
+            echo "Creating environment configuration file..."
+            cp /usr/share/doc/iserv-sportoase/.env.example /etc/iserv/sportoase.env
+            chown www-data:www-data /etc/iserv/sportoase.env
+            chmod 600 /etc/iserv/sportoase.env
+            
+            echo ""
+            echo "========================================="
+            echo "IMPORTANT: Configure your environment!"
+            echo "========================================="
+            echo "Edit /etc/iserv/sportoase.env with:"
+            echo "  1. IServ OAuth2 credentials"
+            echo "  2. SMTP email settings"
+            echo "  3. Database connection (if needed)"
+            echo ""
+            echo "See documentation in /usr/share/doc/iserv-sportoase/"
+            echo "========================================="
+            echo ""
+        fi
+        
+        # Database migrations must be run manually
+        echo ""
+        echo "========================================="
+        echo "IMPORTANT: Database Setup Required!"
+        echo "========================================="
+        echo "Run migrations manually after configuration:"
+        echo ""
+        echo "See DATABASE_SETUP.md in /usr/share/doc/iserv-sportoase/"
+        echo "for complete instructions."
+        echo "========================================="
+        echo ""
+        
+        # Reload IServ services
+        if [ -x /usr/sbin/iserv-reload ]; then
+            echo "Reloading IServ services..."
+            /usr/sbin/iserv-reload
+        fi
+        
+        echo ""
+        echo "========================================="
+        echo "SportOase Module installed successfully!"
+        echo "========================================="
+        echo "Next steps:"
+        echo "  1. Configure OAuth2 in IServ Admin Panel"
+        echo "  2. Set up SMTP email in /etc/iserv/sportoase.env"
+        echo "  3. Access module at: https://your-iserv/sportoase"
+        echo ""
+        echo "Documentation: /usr/share/doc/iserv-sportoase/"
+        echo "========================================="
+        ;;
+        
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+        
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

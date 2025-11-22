@@ -1,0 +1,26 @@
+{
+  "name": "SportOase Buchungssystem",
+  "short_name": "SportOase",
+  "description": "Buchungssystem für Schulsportanlagen",
+  "start_url": "/sportoase",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4A90E2",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "de-DE"
+}

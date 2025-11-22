@@ -1,0 +1,190 @@
+{% extends '@SportOase/base.html.twig' %}
+
+{% block title %}SportOase - Dashboard{% endblock %}
+
+{% block header %}
+    <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-gray-900">
+            <span class="text-primary-600">Willkommen,</span> {{ app.user.username|default('Gast') }}!
+        </h2>
+        <div class="flex gap-2">
+            <span class="inline-flex items-center rounded-full bg-primary-100 px-3 py-1 text-sm font-medium text-primary-800">
+                {% if is_granted('ROLE_ADMIN') %}Admin{% else %}Lehrkraft{% endif %}
+            </span>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8">
+        <div class="card bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium">Meine Buchungen</p>
+                    <p class="text-3xl font-bold mt-2">{{ user_bookings|length }}</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium">Verfügbare Slots</p>
+                    <p class="text-3xl font-bold mt-2">{{ available_slots|default('N/A') }}</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100 text-sm font-medium">Diese Woche</p>
+                    <p class="text-xl font-bold mt-2">{{ week_data.start_date|date('d.m.Y') }}</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-full p-3">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+        <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                Wochenplan
+            </h3>
+            <div class="flex items-center gap-3">
+                <a href="{{ path('sportoase_dashboard', {week: week_offset - 1}) }}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Vorherige
+                </a>
+                <span class="px-4 py-2 bg-primary-100 text-primary-800 rounded-lg text-sm font-semibold">
+                    Woche {{ week_data.start_date|date('d.m.Y') }}
+                </span>
+                <a href="{{ path('sportoase_dashboard', {week: week_offset + 1}) }}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                    Nächste
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Stunde</th>
+                        {% for day in week_data.days %}
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            <div>{{ day.weekday }}</div>
+                            <div class="text-gray-500 font-normal">{{ day.formatted }}</div>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for period, times in week_data.periods %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <div>{{ period }}. Stunde</div>
+                            <div class="text-xs text-gray-500">{{ times.start }} - {{ times.end }}</div>
+                        </td>
+                        {% for day in week_data.days %}
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <a href="{{ path('sportoase_booking_create', {date: day.date|date('Y-m-d'), period: period}) }}" 
+                               class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition btn-hover-scale">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Buchen
+                            </a>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                Meine Buchungen
+            </h3>
+        </div>
+        
+        <div class="px-6 py-4">
+            {% if user_bookings|length > 0 %}
+                <div class="space-y-3">
+                    {% for booking in user_bookings %}
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition">
+                        <div class="flex items-center gap-4">
+                            <div class="flex-shrink-0 w-16 h-16 bg-primary-100 rounded-lg flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="text-xs font-medium text-primary-600">{{ booking.date|date('M') }}</div>
+                                    <div class="text-xl font-bold text-primary-900">{{ booking.date|date('d') }}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900">{{ booking.offerLabel }}</h4>
+                                <p class="text-sm text-gray-600">
+                                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    {{ booking.date|date('d.m.Y') }} - {{ period }}. Stunde
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Schüler: {{ booking.studentsJson|length }}
+                                </p>
+                            </div>
+                        </div>
+                        <div>
+                            <form method="post" action="{{ path('sportoase_booking_delete', {id: booking.id}) }}" onsubmit="return confirm('Buchung wirklich löschen?')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete-booking-' ~ booking.id) }}">
+                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                    Löschen
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <p class="mt-4 text-gray-500 text-lg">Keine Buchungen vorhanden</p>
+                    <p class="mt-2 text-gray-400 text-sm">Buchen Sie einen Slot im Wochenplan oben</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
