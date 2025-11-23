@@ -2,7 +2,8 @@ Source: iserv-sportoase
 Section: iserv
 Priority: optional
 Maintainer: SportOase Team <sportoase.kg@gmail.com>
-Build-Depends: debhelper (>= 11), 
+Build-Depends: debhelper-compat (= 13), 
+               dh-sequence-iserv,
                nodejs, 
                npm,
                composer,
@@ -17,6 +18,7 @@ Homepage: https://github.com/sportoase/iserv-sportoase
 Package: iserv-sportoase
 Architecture: all
 Depends: ${misc:Depends},
+         iserv3-core,
          iserv-portal,
          php (>= 8.0),
          php-cli,
@@ -26,7 +28,9 @@ Depends: ${misc:Depends},
          php-curl,
          php-json,
          php-zip,
-         php-gd
+         php-gd,
+         php-symfony-framework-bundle,
+         php-doctrine-orm
 Description: SportOase - IServ module for booking sports facilities
  This IServ module provides a comprehensive booking system for school
  sports facilities with the following features:

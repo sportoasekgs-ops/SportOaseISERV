@@ -1,0 +1,26 @@
+#!/bin/bash
+# IServ Installation Mapping für SportOase Module
+# Dokumentation: /usr/share/doc/iserv-buildtools/iservinstall.md
+
+# Symfony Bundle to IServ modules directory
+src/ /usr/share/iserv/modules/sportoase/src/
+config/ /usr/share/iserv/modules/sportoase/config/
+templates/ /usr/share/iserv/modules/sportoase/templates/
+migrations/ /usr/share/iserv/modules/sportoase/migrations/
+bin/console /usr/share/iserv/modules/sportoase/bin/console
+
+# Composer files
+composer.json /usr/share/iserv/modules/sportoase/composer.json
+composer.lock /usr/share/iserv/modules/sportoase/composer.lock
+
+# Public assets (compiled)
+public/build/ /usr/share/iserv/modules/sportoase/public/build/
+public/manifest.json /usr/share/iserv/modules/sportoase/public/manifest.json
+public/sw.js /usr/share/iserv/modules/sportoase/public/sw.js
+
+# Documentation
+README.md /usr/share/doc/iserv-sportoase/README.md
+INSTALLATION.md /usr/share/doc/iserv-sportoase/INSTALLATION.md
+
+# Module manifest
+manifest.xml /usr/share/iserv/modules/sportoase/manifest.xml
