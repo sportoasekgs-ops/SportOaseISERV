@@ -51,38 +51,34 @@ Preferred communication style: Simple, everyday language.
 
 ```
 sportoase/
-├── bin/
-│   └── console                     # Symfony Console (für Migrations)
 ├── src/
 │   ├── SportOaseBundle.php        # Main Symfony bundle
 │   ├── DependencyInjection/       # IServ Bundle-Integration
 │   │   ├── SportOaseExtension.php
 │   │   └── Configuration.php
+│   ├── Resources/
+│   │   └── config/
+│   │       └── services.yaml      # Bundle services
 │   ├── Controller/                 # Request handlers
-│   │   ├── DashboardController.php
-│   │   ├── BookingController.php
-│   │   └── AdminController.php
-│   ├── Entity/                     # Doctrine entities (database models)
-│   │   ├── User.php
-│   │   ├── Booking.php
-│   │   ├── SlotName.php
-│   │   ├── BlockedSlot.php
-│   │   └── Notification.php
-│   └── Service/                    # Business logic
-│       ├── BookingService.php
-│       └── EmailService.php
+│   ├── Entity/                     # Doctrine entities
+│   ├── Service/                    # Business logic
+│   └── Security/                   # Auth handlers
 ├── debian/                         # IServ Debian-Paket
-│   ├── control                     # Package-Dependencies
+│   ├── control                     # Package-Dependencies (iserv3-core, dh-sequence-iserv)
 │   ├── iservinstall               # Installations-Mapping
+│   ├── iservmode                  # Installation mode (basic legacy)
 │   ├── changelog
-│   └── rules
+│   └── rules                       # Build script (kompiliert Assets)
 ├── templates/                      # Twig templates
 ├── migrations/                     # Database schema migrations
-├── config/                         # Symfony configuration
+│   └── doctrine.yaml              # Migrations config
+├── config/                         # Host-level configuration
+├── public/build/                   # Vorkompilierte Assets (via webpack)
 ├── composer.json                   # PHP dependencies
+├── package.json                    # Node.js build dependencies
 ├── manifest.xml                    # IServ module manifest
-├── SCHNELLSTART.md                 # Einfache Installations-Anleitung
-└── install.sh                      # Automatisches Installations-Skript
+├── SCHNELLSTART.md                 # Laienverständliche Installations-Anleitung
+└── install.sh                      # Post-Installation-Skript
 ```
 
 ### Database Schema

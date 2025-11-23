@@ -1,26 +1,29 @@
-#!/bin/bash
-# IServ Installation Mapping für SportOase Module
+# IServ Installation Mapping für SportOase Bundle
 # Dokumentation: /usr/share/doc/iserv-buildtools/iservinstall.md
+# Modus: basic legacy (für Symfony-basierte IServ 3 Module)
 
-# Symfony Bundle to IServ modules directory
-src/ /usr/share/iserv/modules/sportoase/src/
-config/ /usr/share/iserv/modules/sportoase/config/
-templates/ /usr/share/iserv/modules/sportoase/templates/
-migrations/ /usr/share/iserv/modules/sportoase/migrations/
-bin/console /usr/share/iserv/modules/sportoase/bin/console
+# Bundle-Quellcode (Templates sind bereits in src/Resources/views/)
+src /usr/share/iserv/iservchk/modules/SportOase/
+migrations /usr/share/iserv/iservchk/modules/SportOase/
 
-# Composer files
-composer.json /usr/share/iserv/modules/sportoase/composer.json
-composer.lock /usr/share/iserv/modules/sportoase/composer.lock
+# Composer-Dependencies (KRITISCH!)
+vendor /usr/share/iserv/iservchk/modules/SportOase/
+composer.json /usr/share/iserv/iservchk/modules/SportOase/
+composer.lock /usr/share/iserv/iservchk/modules/SportOase/
 
-# Public assets (compiled)
-public/build/ /usr/share/iserv/modules/sportoase/public/build/
-public/manifest.json /usr/share/iserv/modules/sportoase/public/manifest.json
-public/sw.js /usr/share/iserv/modules/sportoase/public/sw.js
+# Manifest
+manifest.xml /usr/share/iserv/iservchk/modules/SportOase/
 
-# Documentation
-README.md /usr/share/doc/iserv-sportoase/README.md
-INSTALLATION.md /usr/share/doc/iserv-sportoase/INSTALLATION.md
+# Config-Dateien
+config /usr/share/iserv/iservchk/modules/SportOase/
 
-# Module manifest
-manifest.xml /usr/share/iserv/modules/sportoase/manifest.xml
+# Öffentliche Assets (vorkompiliert während Build)
+public/build /usr/share/iserv/iservchk/modules/SportOase/public/
+public/manifest.json /usr/share/iserv/iservchk/modules/SportOase/public/
+public/sw.js /usr/share/iserv/iservchk/modules/SportOase/public/
+public/assets /usr/share/iserv/iservchk/modules/SportOase/public/
+
+# Dokumentation
+README.md /usr/share/doc/iserv-sportoase/
+INSTALLATION.md /usr/share/doc/iserv-sportoase/
+SCHNELLSTART.md /usr/share/doc/iserv-sportoase/

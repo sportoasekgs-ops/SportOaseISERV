@@ -69,26 +69,24 @@ Führen Sie auf dem IServ-Server aus:
 # Als Root arbeiten
 sudo su
 
-# Paket installieren
+# Paket installieren (installiert automatisch alle Abhängigkeiten)
 apt install /tmp/iserv-sportoase_1.0.0_all.deb
-
-# Composer-Abhängigkeiten installieren
-cd /usr/share/iserv/modules/sportoase
-composer install --no-dev --optimize-autoloader
 ```
 
-⏱️ **Dauer**: ca. 2-3 Minuten
+✅ **Fertig!** Das Paket enthält bereits alle vorkompilierten Assets und PHP-Abhängigkeiten.
+
+⏱️ **Dauer**: ca. 30 Sekunden
 
 ---
 
 ## 🗄️ Schritt 6: Datenbank einrichten
 
 ```bash
-# Noch als Root
-cd /usr/share/iserv/modules/sportoase
+# Als Root
+cd /usr/share/iserv/iservchk/modules/SportOase
 
-# Migrationen ausführen
-sudo -u www-data php bin/console doctrine:migrations:migrate --no-interaction
+# Migrationen ausführen (verwendet IServ's eigenes Console)
+sudo -u www-data php /usr/share/iserv/www/iserv console doctrine:migrations:migrate --configuration=migrations/doctrine.yaml --no-interaction
 ```
 
 ✅ **Erfolgreich?** Sie sollten die Meldung sehen: "Migration complete!"
@@ -194,19 +192,14 @@ systemctl restart apache2
 
 ## ⚙️ Konfiguration nach Installation
 
-### Admin-Benutzer erstellen:
-```bash
-# Im SportOase-Verzeichnis
-sudo -u www-data php bin/console app:create-admin IHR-USERNAME
-```
-
 ### Zeitperioden anpassen:
-Bearbeiten Sie die Datei `src/Service/BookingService.php` und passen Sie die Zeiten an.
-
-### E-Mail-Benachrichtigungen testen:
-```bash
-sudo -u www-data php bin/console app:test-email
+Bearbeiten Sie die Datei:
 ```
+/usr/share/iserv/iservchk/modules/SportOase/src/Service/BookingService.php
+```
+
+### Admin-Rechte vergeben:
+Admin-Rechte werden über die IServ-Benutzerverwaltung vergeben. Fügen Sie Benutzer zur "SportOase-Admin" Gruppe hinzu.
 
 ---
 

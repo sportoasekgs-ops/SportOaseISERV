@@ -1,0 +1,11 @@
+doctrine_migrations:
+    migrations_paths:
+        'SportOase\Migrations': '.'
+    
+    table_name: doctrine_migration_versions_sportoase
+    
+    organize_migrations: false
+    
+    all_or_nothing: true
+    
+    check_database_platform: false
