@@ -23,12 +23,12 @@ args = "Validate Module Structure"
 name = "Validate Module Structure"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "./check_structure.sh"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash check_structure.sh"
 
 [[ports]]
 localPort = 5000
