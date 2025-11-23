@@ -252,7 +252,7 @@ sportoase/
 
 - **E-Mail**: sportoase.kg@gmail.com
 - **Kontakt**: Maurizio Morelli (morelli.maurizio@kgs-pattensen.de)
-- **Telefon**: 0151 40349764
+
 - **Version**: 1.0.0
 - **Letzte Aktualisierung**: November 23, 2025
 
