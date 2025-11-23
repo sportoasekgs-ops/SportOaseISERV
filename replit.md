@@ -8,6 +8,15 @@ SportOase is a **PHP/Symfony-based IServ module** for booking school sports faci
 
 ## Recent Changes
 
+**November 23, 2025 - IServ-Ready Production Deployment**:
+- ✅ **bin/console erstellt**: Symfony Console für Migrations und Kommandos
+- ✅ **DependencyInjection Extension**: SportOaseExtension und Configuration für IServ Bundle-Registration
+- ✅ **debian/iservinstall**: Automatisches Installations-Mapping für IServ-Deployment
+- ✅ **debian/control aktualisiert**: Korrekte IServ-Dependencies (iserv3-core, dh-sequence-iserv, debhelper-compat 13)
+- ✅ **SCHNELLSTART.md**: Laienverständliche Schritt-für-Schritt Installations-Anleitung
+- ✅ **install.sh**: Automatisches Installations-Skript für One-Click-Deployment
+- ✅ **Vollständig IServ-kompatibel**: Modul erfüllt alle IServ-3-Modul-Anforderungen
+
 **November 23, 2025 - Production Optimization & Branding**:
 - ✅ **Module schlank gemacht**: Test-Umgebung und 10+ Dev-Docs entfernt
 - ✅ **Dokumentation konsolidiert**: INSTALLATION.md mit kompletter Deployment-Anleitung
@@ -42,8 +51,13 @@ Preferred communication style: Simple, everyday language.
 
 ```
 sportoase/
+├── bin/
+│   └── console                     # Symfony Console (für Migrations)
 ├── src/
 │   ├── SportOaseBundle.php        # Main Symfony bundle
+│   ├── DependencyInjection/       # IServ Bundle-Integration
+│   │   ├── SportOaseExtension.php
+│   │   └── Configuration.php
 │   ├── Controller/                 # Request handlers
 │   │   ├── DashboardController.php
 │   │   ├── BookingController.php
@@ -57,18 +71,18 @@ sportoase/
 │   └── Service/                    # Business logic
 │       ├── BookingService.php
 │       └── EmailService.php
+├── debian/                         # IServ Debian-Paket
+│   ├── control                     # Package-Dependencies
+│   ├── iservinstall               # Installations-Mapping
+│   ├── changelog
+│   └── rules
 ├── templates/                      # Twig templates
-│   └── sportoase/
-│       ├── base.html.twig
-│       ├── dashboard.html.twig
-│       ├── booking/
-│       └── admin/
 ├── migrations/                     # Database schema migrations
 ├── config/                         # Symfony configuration
-│   ├── routes.yaml
-│   └── services.yaml
 ├── composer.json                   # PHP dependencies
-└── manifest.xml                    # IServ module manifest
+├── manifest.xml                    # IServ module manifest
+├── SCHNELLSTART.md                 # Einfache Installations-Anleitung
+└── install.sh                      # Automatisches Installations-Skript
 ```
 
 ### Database Schema
